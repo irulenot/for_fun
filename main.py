@@ -1,121 +1,139 @@
 import numpy as np
 import random as rng
+from copy import deepcopy
 
 
 def ReLU(input):
     return max(0, input)
 
 def init_network():
-    adjacency_fwd = [[[0], [0], [0], [0], [0]],
-                    [[0], [0], [0], [0], [0]],
-                    [[0], [0], [0], [0], [0]],
-                    [[0], [0], [0], [0], [0]]]
-    adjacency_back =    [[[0], [0], [0], [0], [0]],
-                        [[0], [0], [0], [0], [0]],
-                        [[0], [0], [0], [0], [0]],
-                        [[0], [0], [0], [0], [0]]]
-    active_nodes =  [[0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0],
-                    [0, 0, 0, 0]]
-    outgoing_weights =   [[[1], [0], [0], [0], [0]],
-                         [[1], [0], [0], [0], [0]],
-                         [[1], [0], [0], [0], [0]],
-                         [[1], [0], [0], [0], [0]]]
-    classifier_weights =    [[rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1)],
-                            [rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1)],
-                            [rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1)],
-                            [rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1), rng.uniform(0, 1)]]
+    adjacency_fwd = [[[None], [None], [None], [None], [None]],
+                    [[None], [None], [None], [None], [None]],
+                    [[None], [None], [None], [None], [None]],
+                    [[None], [None], [None], [None], [None]]]
+    adjacency_back =    [[[None], [None], [None], [None], [None]],
+                        [[None], [None], [None], [None], [None]],
+                        [[None], [None], [None], [None], [None]],
+                        [[None], [None], [None], [None], [None]]]
+    active_nodes =  [[1, None, None, None, None],
+                    [1, None, None, None, None],
+                    [1, None, None, None, None],
+                    [1, None, None, None, None]]
+    outgoing_weights =   [[[1], [None], [None], [None], [None]],
+                         [[1], [None], [None], [None], [None]],
+                         [[1], [None], [None], [None], [None]],
+                         [[1], [None], [None], [None], [None]]]
+    classifier_weights =    [[None, None, None, None, None],
+                            [None, None, None, None, None],
+                            [None, None, None, None, None],
+                            [None, None, None, None, None]]
     return adjacency_fwd, adjacency_back, outgoing_weights, classifier_weights, active_nodes
 
-def forward(input, adjacency, weights, output_weights):
+def connect_node(start_node, end_node, adjacency_fwd, adjacency_back, active_nodes, outgoing_weights, classifier_weights):
+    x1, y1 = start_node
+    x2, y2 = end_node
+
+    start_is_input, first_connection = False, False
+    if y2 == 0:
+        print("Connecting to input node not allowed.")
+        return
+    if y1 == 0:
+        start_is_input = True
+    if adjacency_fwd[x1][y1] == [None]:
+        first_connection = True
+
+    adjacency_fwd[x1][y1] = [[x2, y2]]
+    adjacency_back[x2][y2] = [[x1, y1]]
+
+    # end_node's first connection
+    if active_nodes[x2][y2] == None:
+        active_nodes[x2][y2] = 1
+        classifier_weights[x2][y2] = rng.uniform(0, 1)
+
+    if start_is_input and first_connection:
+        outgoing_weights[x1][y1][0] = 1 # Only weights of 1 are allowed out of input layer
+    elif start_is_input and not first_connection:
+        outgoing_weights[x1][y1].append([1])
+    elif not start_is_input and first_connection:
+        outgoing_weights[x1][y1][0] = rng.uniform(0, 1)
+    else:
+        outgoing_weights[x1][y1].append(rng.uniform(0, 1))
+
+def forward(input, adjacency_fwd, outgoing_weights, classifier_weights):
     forward_values = [  [input[0].item(), 0, 0, 0, 0],
                         [input[1].item(), 0, 0, 0, 0],
                         [input[2].item(), 0, 0, 0, 0],
                         [input[3].item(), 0, 0, 0, 0]]
 
-    # Iterate over input layer
-    input_height = 4
-    for x1 in range(input_height):
-        y1 = 0
-        neighbors = adjacency[x1][y1]
-        if neighbors[0] != 0:
-            for y3, [x2, y2] in enumerate(neighbors):
-                forward_values[x2][y2] += weights[x1][0][y3] * forward_values[x1][0]
-
-    # Iterate over remaining nodes
-    for x1, nodes in enumerate(adjacency):
-        for y1, neighbors in enumerate(nodes):
-            if neighbors[0] != 0 and y1 != 0:
-                for y3, [x2, y2] in enumerate(neighbors):
-                    forward_values[x2][y2] += ReLU(weights[x1][y1][y3] * forward_values[x1][y1])
+    outgoing_shape = np.array(outgoing_weights).shape
+    x1, y1 = outgoing_shape[0], outgoing_shape[1]
+    input_height = len(input)
+    for x2 in range(x1):
+        for y2 in range(y1):
+            neighbors = adjacency_fwd[x2][y2]
+            if neighbors != [None]:
+                input_node = False
+                if y2 == 0:
+                    input_node = True
+                for i, [x3, y3] in enumerate(neighbors):
+                    if input_node:
+                        forward_values[x3][y3] += outgoing_weights[x2][y2][i] * forward_values[x2][y2]
+                    else:
+                        forward_values[x3][y3] += ReLU(outgoing_weights[x2][y2][i] * forward_values[x2][y2])
 
     # Classification Node
-    F = np.array(forward_values)[:,1:]  # Get rid of input layer
-    out_W = np.array(output_weights)
-    output_signal = (F*out_W).sum()
-
+    F = np.array(forward_values)
+    CW = np.array(classifier_weights)
+    CW[CW == None] = 0
+    output_signal = (F*CW).sum()
     return output_signal
 
-def back(expected_output, output, active_nodes, outgoing_weights, classifier_weights, adjacency_back, learning_rate=1):
+def back_prop(expected_output, output, active_nodes, outgoing_weights, classifier_weights, adjacency_fwd, adjacency_back, learning_rate=1):
     total_error = output - expected_output
-    # TESTING
-    total_error = 0.5
-    outgoing_weights[0][0] = [1]
-    outgoing_weights[0][1] = [0.6]
-    classifier_weights[0][0] = 0.75
-    classifier_weights[0][1] = 0.25
-    # TESTING
     A = np.array(active_nodes)
+    A[A == None] = 0
     OW = np.array(classifier_weights)
+    OW[OW == None] = 0
     weighted_error = (A*OW)/((A*OW).sum()) * total_error
-    zeros_column = np.zeros((weighted_error.shape[0], 1))
-    weighted_error = np.concatenate((zeros_column, weighted_error), axis=1)  # We include input layer weights
 
-    adjacency_backprop = adjacency_back.copy()
-    adjacency_backprop.reverse()
-    for row in adjacency_backprop:
+    reversed_back = deepcopy(adjacency_back)
+    reversed_back.reverse()
+    for row in reversed_back:
         row.reverse()
 
-    max_x, max_y = 4, 4
-    for x1, nodes in enumerate(adjacency_backprop):
+    for x1, nodes in enumerate(reversed_back):
         for y1, neighbors in enumerate(nodes):
-            if neighbors[0] != 0:
-                x_original, y_original = max_x-x1-1, max_y-y1+1  # -1 due to indexing, +1 due to weights including input layer,
+            if neighbors != [None]:
+                x_original, y_original = (OW.shape[0]-1)-x1, (OW.shape[1]-1)-y1  # Indexing of shape is one less than shape value
                 node_weights = []
-                for y3, [x2, y2] in enumerate(neighbors):  # CONTINUE HERE: Need to ensure neighbor weights are pointing towards current node being updated
-                    node_weights.append(outgoing_weights[x2][y2][y3])
-                outgoing_weight = classifier_weights[x_original][y_original - 1]  # -1 due to input layer weights
-                node_weights.append(outgoing_weight)
-                weighted_node_weights = np.array(node_weights)
-                total_loss = learning_rate * classifier_weights[x_original][y_original]
-                node_losses = weighted_node_weights / weighted_node_weights.sum() * total_loss
-                for y3, [x2, y2] in enumerate(neighbors):
-                    outgoing_weights[x2][y2][y3] -= node_losses[y3]
+                for x2, y2 in neighbors:
+                    i = adjacency_fwd[x2][y2].index([x_original, y_original])
+                    node_weights.append(outgoing_weights[x2][y2][i])
+                classifier_weight = classifier_weights[x_original][y_original]  # -1 due to input layer weights
+                node_weights.append(classifier_weight)
+                node_weights_numpy = np.array(node_weights)
+                total_loss = learning_rate * weighted_error[x_original][y_original]
+                node_losses = node_weights_numpy / node_weights_numpy.sum() * total_loss
+                for i2, [x2, y2] in enumerate(neighbors):
+                    i = adjacency_fwd[x2][y2].index([x_original, y_original])
+                    outgoing_weights[x2][y2][i] -= node_losses[i2]
                 classifier_weights[x_original][y_original] -= node_losses[-1]
-
-    print('test')
-
 
 def main():
     input = np.array([[1], [1], [0], [0]])
     expected_output = 5
-    adjacency_fwd, adjacency_back, weights, output_weights, active_nodes = init_network()
+    adjacency_fwd, adjacency_back, outgoing_weights, classifier_weights, active_nodes = init_network()
 
     # Custom testing
-    adjacency_fwd[0][0] = [[0, 1]]
-    adjacency_back[0][0] = [[0, 0]]
-    active_nodes[0][1-1] = 1
-    adjacency_fwd[0][1] = [[0, 2]]
-    if weights[0][1] == [0]:
-        weights[0][1][0] = rng.uniform(0, 1)
-    else:
-        weights[0][1].append(rng.uniform(0, 1))
-    adjacency_back[0][1] = [[0, 1]]
-    active_nodes[0][2-1] = 1
-    output = forward(input, adjacency_fwd, weights, output_weights)
-    back(expected_output, output, active_nodes, weights, output_weights, adjacency_back)
+    connect_node([0, 0], [0, 1], adjacency_fwd, adjacency_back, active_nodes, outgoing_weights, classifier_weights)
+    connect_node([0, 1], [0, 2], adjacency_fwd, adjacency_back, active_nodes, outgoing_weights, classifier_weights)
 
+    # Training loop
+    epochs = 20
+    for i in range(epochs):
+        output = forward(input, adjacency_fwd, outgoing_weights, classifier_weights)
+        back_prop(expected_output, output, active_nodes, outgoing_weights, classifier_weights, adjacency_fwd, adjacency_back)
+        print(output)
 
 if __name__ == "__main__":
     main()
