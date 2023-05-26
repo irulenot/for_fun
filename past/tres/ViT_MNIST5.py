@@ -55,7 +55,7 @@ def evaluate(model, data_loader, loss_history):
 def main():
     torch.manual_seed(42)
 
-    DOWNLOAD_PATH = 'data/mnist'
+    DOWNLOAD_PATH = '../../data/MNIST'
     BATCH_SIZE_TRAIN = 100
     BATCH_SIZE_TEST = 1000
 

@@ -1,0 +1,11 @@
+{
+  "prepare_data": {
+    "module_name": "prepare_data.CIFAR",
+    "function_name": "prepare_CIFAR"
+  },
+  "prepare_model": {
+    "module_name": "prepare_model.MLP_CIFAR",
+    "function_name": "prepare_model_directed"
+  },
+  "epochs": 5
+}

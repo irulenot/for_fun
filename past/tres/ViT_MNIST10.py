@@ -21,8 +21,8 @@ def train_epoch(model, optimizer, data_loader, loss_history, epoch, not_pruned):
         loss = F.nll_loss(output, target)
         loss.backward()
 
-        percentile = 50 - ((epoch - 1) * 10)
-        if percentile > 0:
+        percentile = 50
+        if epoch <= 6:
             with torch.no_grad():
                 all_gradients = []
                 for param in model.parameters():
@@ -74,7 +74,7 @@ def evaluate(model, data_loader, loss_history):
 def main():
     torch.manual_seed(42)
 
-    DOWNLOAD_PATH = 'data/mnist'
+    DOWNLOAD_PATH = '../../data/MNIST'
     BATCH_SIZE_TRAIN = 100
     BATCH_SIZE_TEST = 1000
 

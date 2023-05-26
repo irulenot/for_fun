@@ -75,7 +75,6 @@ def train(model, optimizer, criterion, train_loader, device, epoch):
                     if param.grad is not None:
                         top_50_percentile = torch.abs(param) >= percentile_50
                         param.grad[top_50_percentile] *= 2  # Double the gradients of top 50%
-                        # param.grad[~top_50_percentile] -= torch.abs(param.grad[~top_50_percentile])  # Halve the gradients of bottom 50%
 
         optimizer.step()
 

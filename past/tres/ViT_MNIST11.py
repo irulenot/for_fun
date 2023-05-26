@@ -15,30 +15,14 @@ def train_epoch(model, optimizer, data_loader, loss_history, epoch, not_pruned):
     total_samples = len(data_loader.dataset)
     model.train()
 
-    if epoch == 2 and not_pruned:
-        with torch.no_grad():
-            all_weights = []
-            for param in model.parameters():
-                if param.data is not None:
-                    all_weights.append(param.data.view(-1))
-
-            all_weights = torch.cat(all_weights)
-            weights_abs = torch.abs(all_weights)
-            percentile_50 = np.percentile(weights_abs.cpu().numpy(), 50)
-
-            for name, param in model.named_parameters():
-                if param.data is not None:
-                    top_50_percentile = torch.abs(param.data) >= percentile_50
-                    param.data[~top_50_percentile] *= 0
-            not_pruned = False
-
     for i, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
         output = F.log_softmax(model(data), dim=1)
         loss = F.nll_loss(output, target)
         loss.backward()
-        # Reward top 50% and penalize bottom 50% connections in the first epoch
-        if epoch == 1:
+
+        percentile = 50 + ((epoch - 1) * 10)
+        if percentile > 0 and percentile < 100:
             with torch.no_grad():
                 all_gradients = []
                 for param in model.parameters():
@@ -47,13 +31,12 @@ def train_epoch(model, optimizer, data_loader, loss_history, epoch, not_pruned):
 
                 all_gradients = torch.cat(all_gradients)
                 gradients_abs = torch.abs(all_gradients)
-                percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
+                percentile = np.percentile(gradients_abs.cpu().numpy(), 50)
 
                 for param in model.parameters():
                     if param.grad is not None:
-                        top_50_percentile = torch.abs(param) >= percentile_50
+                        top_50_percentile = torch.abs(param) >= percentile
                         param.grad[top_50_percentile] *= 2  # Double the gradients of top 50%
-                        # param.grad[~top_50_percentile] -= torch.abs(param.grad[~top_50_percentile])  # Halve the gradients of bottom 50%
 
         optimizer.step()
 
@@ -91,7 +74,7 @@ def evaluate(model, data_loader, loss_history):
 def main():
     torch.manual_seed(42)
 
-    DOWNLOAD_PATH = 'data/mnist'
+    DOWNLOAD_PATH = '../../data/MNIST'
     BATCH_SIZE_TRAIN = 100
     BATCH_SIZE_TEST = 1000
 
@@ -106,7 +89,7 @@ def main():
                                           transform=transform_mnist)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=BATCH_SIZE_TEST, shuffle=True)
 
-    N_EPOCHS = 5
+    N_EPOCHS = 10
 
     start_time = time.time()
     model = ViT(image_size=28, patch_size=7, num_classes=10, channels=1,
