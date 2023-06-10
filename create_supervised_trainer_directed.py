@@ -116,19 +116,17 @@ def supervised_training_step(
             with torch.no_grad():
                 all_gradients = []
                 for name, param in model.named_parameters():
-                    if name[:5] == 'trans' or name[:3] == 'mlp' or name[:5] == 'patch':
-                        if param.grad is not None:
-                            gradients_abs = torch.abs(param.grad.view(-1))
-                            percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
-                            all_gradients.append(percentile_50)
+                    if param.grad is not None:
+                        gradients_abs = torch.abs(param.grad.view(-1))
+                        percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
+                        all_gradients.append(percentile_50)
                 i2 = 0
                 for name_param in model.named_parameters():
                     name, param = name_param
-                    if name[:5] == 'trans' or name[:3] == 'mlp':
-                        if param.grad is not None:
-                            top_50_percentile = torch.abs(param) >= all_gradients[i2]
-                            param.grad[top_50_percentile] *= 2
-                            i2 += 1
+                    if param.grad is not None:
+                        top_50_percentile = torch.abs(param) >= all_gradients[i2]
+                        param.grad[top_50_percentile] *= 2
+                        i2 += 1
         loss.backward()
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
