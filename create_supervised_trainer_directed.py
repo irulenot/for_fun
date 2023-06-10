@@ -113,7 +113,7 @@ def supervised_training_step(
         model.steps += 1
         epoch = int(model.steps / 1563)  # Batches in dataloader
         loss.backward()
-        if epoch % 2 == 0:
+        if epoch % 2 == 1:
             with torch.no_grad():
                 if len(model.weight_idxs) == 0:
                     for name, param in model.named_parameters():
@@ -125,18 +125,12 @@ def supervised_training_step(
                         else:
                             model.weight_idxs.append(0)
 
-                all_gradients = []
                 for i, param in enumerate(model.parameters()):
                     if model.weight_idxs[i] == 1:
                         gradients_abs = torch.abs(param.grad.view(-1))
                         percentile_50 = torch.median(gradients_abs)
-                        all_gradients.append(percentile_50)
-                i2 = 0
-                for i, param in enumerate(model.parameters()):
-                    if model.weight_idxs[i] == 1:
-                        top_50_percentile = torch.abs(param) >= all_gradients[i2]
+                        top_50_percentile = torch.abs(param) >= percentile_50
                         param.grad[top_50_percentile] *= 2
-                        i2 += 1
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
         return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)
