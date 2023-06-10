@@ -113,7 +113,7 @@ def supervised_training_step(
         model.steps += 1
         epoch = int(model.steps / 1563)  # Batches in dataloader
         loss.backward()
-        if epoch % 2 == 1:
+        if epoch % 2 == 0:
             with torch.no_grad():
                 if len(model.weight_idxs) == 0:
                     for name, param in model.named_parameters():
@@ -129,7 +129,7 @@ def supervised_training_step(
                 for i, param in enumerate(model.parameters()):
                     if model.weight_idxs[i] == 1:
                         gradients_abs = torch.abs(param.grad.view(-1))
-                        percentile_50 = torch.percentile(gradients_abs, 50)
+                        percentile_50 = torch.median(gradients_abs)
                         all_gradients.append(percentile_50)
                 i2 = 0
                 for i, param in enumerate(model.parameters()):
