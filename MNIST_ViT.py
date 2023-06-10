@@ -4,6 +4,7 @@ import json
 import importlib
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 def main(json_data, seed_value, approach):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -25,15 +26,36 @@ def main(json_data, seed_value, approach):
         train_loss = train_function(model, optimizer, train_loader, device, epoch)
         test_loss, test_accuracy = test_function(model,test_loader, device)
 
-        # torch.save(model.state_dict(), 'weights/' + approach + '_S' + str(seed_value) + '_E' + str(epoch) + '.pt')
+        if epoch % 10 == 0 or epoch == num_epochs:
+            torch.save(model.state_dict(), 'weights/' + approach + '_' + str(seed_value) + '_' + str(epoch) + '.pt')
         train_losses.extend(train_loss)
         test_losses.append(test_loss)
-        test_accuracies.append(test_accuracy.cpu().numpy())
+        test_accuracies.append(test_accuracy.cpu().item())
+
+    # Load File
+    metrics_path = 'metrics/metrics.json'
+    if os.path.exists(metrics_path):
+        with open(metrics_path, 'r') as file:
+            metrics = json.load(file)
+    else:
+        metrics = {}
+    # Prepare json dict
+    if approach not in metrics.keys():
+        metrics[approach] = {}
+    if seed_value not in metrics[approach].keys():
+        metrics[approach][seed_value] = {}
+    # Dump json dict
+    metrics[approach][seed_value]['train_losses'] = train_losses
+    metrics[approach][seed_value]['test_losses'] = test_losses
+    metrics[approach][seed_value]['test_accuracies'] = test_accuracies
+    with open(metrics_path, 'w+') as f:
+        json.dump(metrics, f)
 
     return test_accuracies
 
 if __name__ == "__main__":
-    seeds = [1, 2, 3, 4, 5]
+    # seeds = [1, 2, 3, 4, 5]
+    seeds = [2, 3, 4, 5]
     # seeds = [42]
 
     config_path_directed = 'config/MNIST_ViT.json'
@@ -55,8 +77,10 @@ if __name__ == "__main__":
     #     all_accuracies.append(accuracies)
     # arr = np.array(all_accuracies)
     # column_averages = np.round(np.mean(arr, axis=0), 2)
-    # plt.plot(range(len(column_averages)), column_averages)
-    # for i, j in zip(range(len(column_averages)), column_averages):
+    # averages = column_averages[::10]
+    # averages = np.append(averages, column_averages[-1])
+    # plt.plot(range(len(averages)), averages)
+    # for i, j in zip(range(len(averages)), averages):
     #     plt.text(i, j, str(j), ha='center', va='bottom')
     # plt.xlabel('Epochs')
     # plt.ylabel('Accuracy')
@@ -66,22 +90,24 @@ if __name__ == "__main__":
     # plt.savefig('figures/ViT_vanilla.png')
     # plt.clf()
 
-    all_accuracies = []
-    for seed in seeds:
-        accuracies = main(json_data_directed, seed, 'directed')
-        all_accuracies.append(accuracies)
-    arr = np.array(all_accuracies)
-    column_averages = np.round(np.mean(arr, axis=0), 2)
-    plt.plot(range(len(column_averages)), column_averages)
-    for i, j in zip(range(len(column_averages)), column_averages):
-        plt.text(i, j, str(j), ha='center', va='bottom')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.title('Test Accuracy')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig('figures/ViT_directed.png')
-    plt.clf()
+    # all_accuracies = []
+    # for seed in seeds:
+    #     accuracies = main(json_data_directed, seed, 'directed')
+    #     all_accuracies.append(accuracies)
+    # arr = np.array(all_accuracies)
+    # column_averages = np.round(np.mean(arr, axis=0), 2)
+    # averages = column_averages[::10]
+    # averages = np.append(averages, column_averages[-1])
+    # plt.plot(range(len(averages)), averages)
+    # for i, j in zip(range(len(averages)), averages):
+    #     plt.text(i, j, str(j), ha='center', va='bottom')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Accuracy')
+    # plt.title('Test Accuracy')
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.savefig('figures/ViT_directed.png')
+    # plt.clf()
 
     all_accuracies = []
     for seed in seeds:
@@ -89,25 +115,10 @@ if __name__ == "__main__":
         all_accuracies.append(accuracies)
     arr = np.array(all_accuracies)
     column_averages = np.round(np.mean(arr, axis=0), 2)
-    plt.plot(range(len(column_averages)), column_averages)
-    for i, j in zip(range(len(column_averages)), column_averages):
-        plt.text(i, j, str(j), ha='center', va='bottom')
-    plt.xlabel('Epochs')
-    plt.ylabel('Accuracy')
-    plt.title('Test Accuracy')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig('figures/ViT_directed_first.png')
-    plt.clf()
-
-    all_accuracies = []
-    for seed in seeds:
-        accuracies = main(json_data_directed_half, seed, 'directed')
-        all_accuracies.append(accuracies)
-    arr = np.array(all_accuracies)
-    column_averages = np.round(np.mean(arr, axis=0), 2)
-    plt.plot(range(len(column_averages)), column_averages)
-    for i, j in zip(range(len(column_averages)), column_averages):
+    averages = column_averages[::10]
+    averages = np.append(averages, column_averages[-1])
+    plt.plot(range(len(averages)), averages)
+    for i, j in zip(range(len(averages)), averages):
         plt.text(i, j, str(j), ha='center', va='bottom')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
@@ -116,3 +127,20 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig('figures/ViT_directed_half.png')
     plt.clf()
+
+    # all_accuracies = []
+    # for seed in seeds:
+    #     accuracies = main(json_data_directed_half, seed, 'directed')
+    #     all_accuracies.append(accuracies)
+    # arr = np.array(all_accuracies)
+    # column_averages = np.round(np.mean(arr, axis=0), 2)
+    # plt.plot(range(len(column_averages)), column_averages)
+    # for i, j in zip(range(len(column_averages)), column_averages):
+    #     plt.text(i, j, str(j), ha='center', va='bottom')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Accuracy')
+    # plt.title('Test Accuracy')
+    # plt.grid(True)
+    # plt.tight_layout()
+    # plt.savefig('figures/ViT_directed_half.png')
+    # plt.clf()

@@ -176,7 +176,7 @@ def train_epoch_directed_first(model, optimizer, train_loader, device, epoch=0):
         output = F.log_softmax(model(data), dim=1)
         loss = F.nll_loss(output, target)
         loss.backward()
-        if epoch == 1:
+        if epoch % 2 == 1 and epoch < 50:
             with torch.no_grad():
                 all_gradients = []
                 for name, param in model.named_parameters():

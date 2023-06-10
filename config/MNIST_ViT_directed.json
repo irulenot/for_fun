@@ -1,11 +1,11 @@
 {
   "prepare_data": {
     "module_name": "prepare_data.MNIST",
-    "function_name": "prepare_MNIST_small"
+    "function_name": "prepare_MNIST"
   },
   "prepare_model": {
     "module_name": "prepare_model.ViT_MNIST",
     "function_name": "prepare_model_directed"
   },
-  "epochs": 25
+  "epochs": 100
 }
