@@ -111,24 +111,32 @@ def supervised_training_step(
         if gradient_accumulation_steps > 1:
             loss = loss / gradient_accumulation_steps
         model.steps += 1
-        epoch = model.steps % 1563  # Batches in dataloader
+        epoch = int(model.steps / 1563)  # Batches in dataloader
         loss.backward()
         if epoch % 2 == 1:
             with torch.no_grad():
+                if len(model.weight_idxs) == 0:
+                    for name, param in model.named_parameters():
+                        if name[-6:] == 'weight' or name[-4:] == 'bias':
+                            if param.grad is not None:
+                                model.weight_idxs.append(1)
+                            else:
+                                model.weight_idxs.append(0)
+                        else:
+                            model.weight_idxs.append(0)
+
                 all_gradients = []
-                for name, param in model.named_parameters():
-                    if name[-6:] == 'weight' or name[-4:] == 'bias':
-                        if param.grad is not None:
-                            gradients_abs = torch.abs(param.grad.view(-1))
-                            percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
-                            all_gradients.append(percentile_50)
+                for i, param in enumerate(model.parameters()):
+                    if model.weight_idxs[i] == 1:
+                        gradients_abs = torch.abs(param.grad.view(-1))
+                        percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
+                        all_gradients.append(percentile_50)
                 i2 = 0
-                for name, param in model.named_parameters():
-                    if name[-6:] == 'weight' or name[-4:] == 'bias':
-                        if param.grad is not None:
-                            top_50_percentile = torch.abs(param) >= all_gradients[i2]
-                            param.grad[top_50_percentile] *= 2
-                            i2 += 1
+                for i, param in enumerate(model.parameters()):
+                    if model.weight_idxs[i] == 1:
+                        top_50_percentile = torch.abs(param) >= all_gradients[i2]
+                        param.grad[top_50_percentile] *= 2
+                        i2 += 1
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
         return output_transform(x, y, y_pred, loss * gradient_accumulation_steps)

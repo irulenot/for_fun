@@ -208,6 +208,7 @@ def main():
             )
             self.reset_parameters()
             self.steps = 0
+            self.weight_idxs = []
 
         def reset_parameters(self):
             for m in self.modules():
