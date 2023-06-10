@@ -10,7 +10,8 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 
-from ignite.engine import Events, create_supervised_trainer, create_supervised_evaluator
+from ignite.engine import Events, create_supervised_evaluator
+from create_supervised_trainer_directed import create_supervised_trainer
 from ignite.utils import convert_tensor
 import ignite.metrics
 import ignite.contrib.handlers
@@ -206,6 +207,7 @@ def main():
                 Head(channels, classes, head_p_drop)
             )
             self.reset_parameters()
+            self.steps = 0
 
         def reset_parameters(self):
             for m in self.modules():
