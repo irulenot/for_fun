@@ -129,7 +129,7 @@ def supervised_training_step(
                 for i, param in enumerate(model.parameters()):
                     if model.weight_idxs[i] == 1:
                         gradients_abs = torch.abs(param.grad.view(-1))
-                        percentile_50 = np.percentile(gradients_abs.cpu().numpy(), 50)
+                        percentile_50 = torch.percentile(gradients_abs, 50)
                         all_gradients.append(percentile_50)
                 i2 = 0
                 for i, param in enumerate(model.parameters()):
