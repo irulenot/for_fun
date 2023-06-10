@@ -345,6 +345,7 @@ def main():
 
     trainer.run(train_loader, max_epochs=EPOCHS);
 
+    import json
     fig = plt.figure()
     ax = fig.add_subplot(111)
     xs = np.arange(1, len(history['train loss']) + 1)
@@ -355,6 +356,8 @@ def main():
     ax.legend()
     ax.grid()
     # plt.show()
+    with open('history_directed.json', 'w') as file:
+        json.dump(history, file)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)

@@ -341,8 +341,9 @@ def main():
         print("{}/{} - train: loss {:.3f}; val: loss {:.3f} accuracy {:.3f}".format(
             epoch, max_epochs, train_loss, val_loss, val_acc))
 
-    trainer.run(train_loader, max_epochs=EPOCHS);
+    # trainer.run(train_loader, max_epochs=EPOCHS);
 
+    import json
     fig = plt.figure()
     ax = fig.add_subplot(111)
     xs = np.arange(1, len(history['train loss']) + 1)
@@ -353,6 +354,8 @@ def main():
     ax.legend()
     ax.grid()
     # plt.show()
+    with open('history_vanilla.json', 'w') as file:
+        json.dump(history, file)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
