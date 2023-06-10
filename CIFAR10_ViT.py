@@ -17,6 +17,8 @@ import ignite.contrib.handlers
 
 
 def main():
+    torch.manual_seed(42)
+
     DATA_DIR = './data'
 
     IMAGE_SIZE = 32
@@ -253,6 +255,7 @@ def main():
                    emb_p_drop=0., trans_p_drop=0., head_p_drop=0.3)
 
     model.to(DEVICE);
+    model = nn.DataParallel(model)
 
     print("Number of parameters: {:,}".format(sum(p.numel() for p in model.parameters())))
 
