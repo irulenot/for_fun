@@ -127,9 +127,6 @@ def supervised_training_step(
 
                 for i, param in enumerate(model.parameters()):
                     if model.weight_idxs[i] == 1:
-                        gradients_abs = torch.abs(param.grad.view(-1))
-                        percentile_50 = torch.median(gradients_abs)
-                        top_50_percentile = torch.abs(param) >= percentile_50
                         param.grad[top_50_percentile] *= 2
         if engine.state.iteration % gradient_accumulation_steps == 0:
             optimizer.step()
